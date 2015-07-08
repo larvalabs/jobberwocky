@@ -4,9 +4,11 @@ package play.modules.jobberwocky;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import play.Logger;
 import play.Play;
+import play.jobs.JobsPlugin;
 
 
 public class RunJob  {
@@ -46,6 +48,12 @@ public class RunJob  {
 			if (returnResult instanceof Number) {
 				exitCondition = ((Number) returnResult).intValue();
 			}
+
+            Logger.info("Waiting for queued jobs to complete before shutting down: " + JobsPlugin.executor.getQueue().size());
+
+            JobsPlugin.executor.shutdown();
+            JobsPlugin.executor.awaitTermination(1, TimeUnit.HOURS);
+
 		}
 		catch(Exception e) {
 			Logger.error(e, "Error in running Job %s. The job application will stop", jobName);	
@@ -57,6 +65,10 @@ public class RunJob  {
 		}
 		System.exit(exitCondition);
 	}
+
+    private static int getJobsPendingCount() {
+        return JobsPlugin.executor.getActiveCount();
+    }
 
 	/**
 	 * Convert command line arguments into Map of Strings.
